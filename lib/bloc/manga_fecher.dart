@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-void main (){
-  MangaDexApi.getTrendingManga().then((mangaList) {
-    for (var manga in mangaList) {
-      print('Title: ${manga['title']}, Cover URL: ${manga['coverUrl']}');
-    }
-  });
-}
+// void main (){
+//   MangaDexApi.getTrendingManga().then((mangaList) {
+//     for (var manga in mangaList) {
+//       print('Title: ${manga['title']}, Cover URL: ${manga['coverUrl']}');
+//     }
+//   });
+// }
 
 class MangaDexApi {
   static const String baseUrl = 'https://api.mangadex.org';
