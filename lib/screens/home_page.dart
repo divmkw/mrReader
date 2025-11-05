@@ -93,6 +93,7 @@ class _HomePageState extends State<HomePage> {
                           imageUrl: (manga['coverUrl'] ?? 'https://orv.pages.dev/assets/covers/orv.webp').toString(),
                           rating: displayRating,
                           chapters: safeChapters,
+                          description: (manga['description'] ?? '').toString(),
                         );
                       },
                     ),
@@ -135,6 +136,7 @@ class _HomePageState extends State<HomePage> {
                           imageUrl: (manga['coverUrl'] ?? 'https://via.placeholder.com/256x400?text=No+Cover').toString(),
                           rating: displayRating,
                           chapters: safeChapters,
+                          description: (manga['description'] ?? '').toString(),
                         );
                       },
                     ),

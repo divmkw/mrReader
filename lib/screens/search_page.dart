@@ -89,12 +89,24 @@ class _SearchPageState extends State<SearchPage> {
                 ),
                 itemBuilder: (context, index) {
                   final manga = _results[index];
+                  final dynamic rawRating = manga['rating'];
+                  final double safeRating = rawRating is num
+                      ? rawRating.toDouble()
+                      : (rawRating is String ? double.tryParse(rawRating) ?? 0.0 : 0.0);
+                  final double displayRating = double.parse(safeRating.toStringAsFixed(2));
+
+                  final dynamic rawCh = manga['chapters'];
+                  final int safeChapters = rawCh is int
+                      ? rawCh
+                      : (rawCh is String ? int.tryParse(rawCh) ?? 0 : 0);
+
                   return MangaCard(
                     title: manga['title'] as String? ?? 'Unknown',
                     author: manga['author'] as String? ?? 'Unknown',
                     imageUrl: manga['coverUrl'] as String? ?? 'https://via.placeholder.com/256x400?text=No+Cover',
-                    rating: 0.0,
-                    chapters: 0,
+                    rating: displayRating,
+                    chapters: safeChapters,
+                    description: manga['description'] as String? ?? '',
                   );
                 },
               ),

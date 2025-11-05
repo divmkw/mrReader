@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 
-class MangaPage extends StatelessWidget {
+class MangaPage extends StatefulWidget {
   final String title;
   final String author;
   final String imageUrl;
   final double rating;
   final int chapters;
+  final String description;
 
   const MangaPage({
     super.key,
@@ -15,13 +18,87 @@ class MangaPage extends StatelessWidget {
     required this.imageUrl,
     required this.rating,
     required this.chapters,
+    required this.description,
   });
+
+  @override
+  State<MangaPage> createState() => _MangaPageState();
+}
+
+class _MangaPageState extends State<MangaPage> {
+  int lastRead = 0; // default to 0
+  bool isBookmarked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookmarkStatus();
+  }
+
+  Future<void> _loadBookmarkStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('bookmarks');
+    if (raw == null) {
+      setState(() => isBookmarked = false);
+      return;
+    }
+    try {
+      final List<dynamic> list = jsonDecode(raw) as List<dynamic>;
+      final exists = list.any((e) {
+        final m = e as Map<String, dynamic>;
+        return (m['title'] == widget.title) && (m['author'] == widget.author);
+      });
+      setState(() => isBookmarked = exists);
+    } catch (_) {
+      setState(() => isBookmarked = false);
+    }
+  }
+
+  Future<void> _toggleBookmark() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('bookmarks');
+    List<dynamic> list;
+    try {
+      list = raw != null ? (jsonDecode(raw) as List<dynamic>) : <dynamic>[];
+    } catch (_) {
+      list = <dynamic>[];
+    }
+
+    // Remove any existing entry with same title+author
+    list = list.where((e) {
+      final m = e as Map<String, dynamic>;
+      return !(m['title'] == widget.title && m['author'] == widget.author);
+    }).toList();
+
+    if (!isBookmarked) {
+      list.add({
+        'title': widget.title,
+        'author': widget.author,
+        'imageUrl': widget.imageUrl,
+        'rating': widget.rating,
+        'chapters': widget.chapters,
+        'description': widget.description,
+        'lastRead': lastRead,
+        'savedAt': DateTime.now().toIso8601String(),
+      });
+    }
+
+    await prefs.setString('bookmarks', jsonEncode(list));
+    setState(() => isBookmarked = !isBookmarked);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manga Reader'),
+        actions: [
+          IconButton(
+            tooltip: isBookmarked ? 'Remove bookmark' : 'Add bookmark',
+            icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border),
+            onPressed: _toggleBookmark,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -35,7 +112,7 @@ class MangaPage extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(12)),
                   child: Image.network(
-                    imageUrl ,
+                    widget.imageUrl ,
                     width: 100,
                     height: 150,
                     fit: BoxFit.cover,
@@ -47,14 +124,14 @@ class MangaPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        widget.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        author,
+                        widget.author,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -66,14 +143,14 @@ class MangaPage extends StatelessWidget {
                           const Icon(Icons.star, color: Colors.amber, size: 20),
                           const SizedBox(width: 4),
                           Text(
-                            '$rating',
+                            '${widget.rating}',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$chapters Chapters',
+                        '${widget.chapters} Chapters',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
@@ -87,22 +164,6 @@ class MangaPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                // ElevatedButton(
-                //   onPressed: () {
-                //     // Navigate to Tappytoon
-                //   },
-                //   style: ElevatedButton.styleFrom(
-                //     // primary: Colors.blueAccent,
-                //     // onPrimary: Colors.white,
-                //   ),
-                //   child: Row(
-                //     children: [
-                //       Icon(Icons.link, size: 10),
-                //       SizedBox(width: 3),
-                //       Text('Read on Tappytoon'),
-                //     ],
-                //   ),
-                // ),
                 SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: () {
@@ -118,7 +179,7 @@ class MangaPage extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  'Chapters (1/151)',
+                  'Chapters ($lastRead/${widget.chapters})',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
@@ -138,7 +199,7 @@ class MangaPage extends StatelessWidget {
 
             // Description Section
             Text(
-              'The only reader of a web novel witnesses it coming to life. Using his knowledge, he must survive the apocalyptic scenario.',
+              widget.description.isNotEmpty ? widget.description : 'No description available.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ],

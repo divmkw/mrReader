@@ -74,7 +74,7 @@ class MangaDexApi {
     }
 
     final data = json.decode(response.body);
-    final mangaList = <Map<String, dynamic>>[];
+    final pendingWithRatings = <Future<Map<String, dynamic>>>[];
 
     for (var manga in data['data']) {
       final title = manga['attributes']['title']['en'] ??
@@ -96,17 +96,22 @@ class MangaDexApi {
           ? 'https://uploads.mangadex.org/covers/$id/$fileName'
           : 'https://via.placeholder.com/256x400?text=No+Cover';
 
-      // print(imageUrl);
-      mangaList.add({
+      final futureItem = getMangaRating(id).then((rating) => {
         'id': id,
         'title': title,
         'author': author,
+        'description': manga['attributes']['description']?['en'] ?? '',
+        'chapters': manga['attributes']['lastChapter'] ?? 0,
+        'rating': rating ?? 0.0,
         'coverUrl': imageUrl,
       });
+      pendingWithRatings.add(futureItem);
     }
 
+    final mangaList = await Future.wait(pendingWithRatings);
     return mangaList;
   }
+  /// Get manga rating from statistics endpoint
   static Future<double?> getMangaRating(String mangaId) async {
     final url = Uri.parse('$baseUrl/statistics/manga/$mangaId');
     final response = await http.get(url);

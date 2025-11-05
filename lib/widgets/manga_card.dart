@@ -7,6 +7,7 @@ class MangaCard extends StatelessWidget {
   final String imageUrl;
   final double rating;
   final int chapters;
+  final String description;
 
   const MangaCard({
     super.key,
@@ -15,6 +16,7 @@ class MangaCard extends StatelessWidget {
     required this.imageUrl,
     required this.rating,
     required this.chapters,
+    required this.description,
   });
 
   @override
@@ -30,6 +32,7 @@ class MangaCard extends StatelessWidget {
               imageUrl: imageUrl,
               rating: rating,
               chapters: chapters,
+              description: description,
             ),
           ),
         );

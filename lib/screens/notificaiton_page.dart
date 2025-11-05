@@ -124,6 +124,7 @@ class _NotificationPageState extends State<NotificationPage> {
                         author: notif.author ,
                         chapters: notif.chapters,
                         rating:notif.rating,
+                        description: '',
                         // onTap: () {
                         //   setState(() => notif.isRead = true);
                         //   // TODO: Navigate to chapter reader page
