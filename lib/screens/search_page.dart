@@ -1,28 +1,62 @@
 import 'package:flutter/material.dart';
 import '../widgets/manga_card.dart';
-
-class SearchPage extends StatelessWidget {
+import '../bloc/manga_fecher.dart';
+import 'dart:async';
+class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final mangaList = [
-      {
-        'title': 'Omniscient Reader',
-        'author': 'Sing Shong',
-        'image': 'https://orv.pages.dev/assets/covers/orv.webp',
-        'rating': 9.3,
-        'chapters': 151
-      },
-      {
-        'title': 'Solo Leveling',
-        'author': 'Chugong',
-        'image': 'https://i.imgur.com/2p2F2dO.jpeg',
-        'rating': 9.2,
-        'chapters': 179
-      },
-    ];
+  State<SearchPage> createState() => _SearchPageState();
+}
 
+class _SearchPageState extends State<SearchPage> {
+  final TextEditingController _controller = TextEditingController();
+  final List<Map<String, dynamic>> _results = [];
+  Timer? _debounce;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onQueryChanged(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      if (!mounted) return;
+      if (query.trim().isEmpty) {
+        setState(() {
+          _results.clear();
+          _isLoading = false;
+        });
+        return;
+      }
+      setState(() {
+        _isLoading = true;
+      });
+      try {
+        final list = await MangaDexApi.searchManga(query, limit: 20);
+        if (!mounted) return;
+        setState(() {
+          _results
+            ..clear()
+            ..addAll(list);
+          _isLoading = false;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _results.clear();
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -30,6 +64,8 @@ class SearchPage extends StatelessWidget {
           children: [
             const SizedBox(height: 10),
             TextField(
+              controller: _controller,
+              onChanged: _onQueryChanged,
               decoration: InputDecoration(
                 hintText: 'Search manga, manhwa, authors...',
                 prefixIcon: const Icon(Icons.search),
@@ -41,9 +77,10 @@ class SearchPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
+            if (_isLoading) const LinearProgressIndicator(minHeight: 2),
             Expanded(
               child: GridView.builder(
-                itemCount: mangaList.length,
+                itemCount: _results.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisExtent: 270,
@@ -51,13 +88,13 @@ class SearchPage extends StatelessWidget {
                   mainAxisSpacing: 12,
                 ),
                 itemBuilder: (context, index) {
-                  final manga = mangaList[index];
+                  final manga = _results[index];
                   return MangaCard(
-                    title: manga['title']! as String,
-                    author: manga['author']! as String,
-                    imageUrl: manga['image']! as String,
-                    rating: manga['rating']! as double,
-                    chapters: manga['chapters']! as int,
+                    title: manga['title'] as String? ?? 'Unknown',
+                    author: manga['author'] as String? ?? 'Unknown',
+                    imageUrl: manga['coverUrl'] as String? ?? 'https://via.placeholder.com/256x400?text=No+Cover',
+                    rating: 0.0,
+                    chapters: 0,
                   );
                 },
               ),
