@@ -78,12 +78,21 @@ class _HomePageState extends State<HomePage> {
                       itemCount: _mangaList.length,
                       itemBuilder: (context, index) {
                         final manga = _mangaList[index];
+                        final dynamic rawRating = manga['rating'];
+                        final double safeRating = rawRating is num
+                            ? rawRating.toDouble()
+                            : (rawRating is String ? double.tryParse(rawRating) ?? 0.0 : 0.0);
+                        final double displayRating = double.parse(safeRating.toStringAsFixed(2));
+                        final dynamic rawCh = manga['chapters'];
+                        final int safeChapters = rawCh is int
+                            ? rawCh
+                            : (rawCh is String ? int.tryParse(rawCh) ?? 0 : 0);
                         return MangaCard(
-                          title: (manga['title'] ?? 'Unknown') as String,
-                          author: (manga['author'] ?? 'Unknown') as String,
-                          imageUrl: (manga['coverUrl'] ?? 'https://orv.pages.dev/assets/covers/orv.webp') as String,
-                          rating: 0.0,
-                          chapters: 0,
+                          title: (manga['title'] ?? 'Unknown').toString(),
+                          author: (manga['author'] ?? 'Unknown').toString(),
+                          imageUrl: (manga['coverUrl'] ?? 'https://orv.pages.dev/assets/covers/orv.webp').toString(),
+                          rating: displayRating,
+                          chapters: safeChapters,
                         );
                       },
                     ),
@@ -111,12 +120,21 @@ class _HomePageState extends State<HomePage> {
                       itemCount: _mangaList.length,
                       itemBuilder: (context, index) {
                         final manga = _mangaList[index];
+                        final dynamic rawRating = manga['rating'];
+                        final double safeRating = rawRating is num
+                            ? rawRating.toDouble()
+                            : (rawRating is String ? double.tryParse(rawRating) ?? 0.0 : 0.0);
+                        final double displayRating = double.parse(safeRating.toStringAsFixed(2));
+                        final dynamic rawCh = manga['chapters'];
+                        final int safeChapters = rawCh is int
+                            ? rawCh
+                            : (rawCh is String ? int.tryParse(rawCh) ?? 0 : 0);
                         return MangaCard(
-                          title: (manga['title'] ?? 'Unknown') as String,
+                          title: (manga['title'] ?? 'Unknown').toString(),
                           author: 'Unknown',
-                          imageUrl: (manga['coverUrl'] ?? 'https://via.placeholder.com/256x400?text=No+Cover') as String,
-                          rating: 0.0,
-                          chapters: 0,
+                          imageUrl: (manga['coverUrl'] ?? 'https://via.placeholder.com/256x400?text=No+Cover').toString(),
+                          rating: displayRating,
+                          chapters: safeChapters,
                         );
                       },
                     ),

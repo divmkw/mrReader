@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-// void main (){
-//   MangaDexApi.getTrendingManga().then((mangaList) {
-//     for (var manga in mangaList) {
-//       print('Title: ${manga['title']}, Cover URL: ${manga['coverUrl']}');
-//     }
-//   });
-// }
+void main (){
+  MangaDexApi.getTrendingManga().then((mangaList) {
+    for (var manga in mangaList) {
+      print('Title: ${manga['title']}, Cover URL: ${manga['coverUrl']}');
+    }
+  });
+}
 
 class MangaDexApi {
   static const String baseUrl = 'https://api.mangadex.org';
@@ -15,7 +15,7 @@ class MangaDexApi {
   /// Fetch trending or popular manga
   static Future<List<Map<String, dynamic>>> getTrendingManga({int limit = 10}) async {
     // Using followedCount for popularity; include cover art and filter to EN and safe/suggestive content
-    final url = Uri.parse('$baseUrl/manga?limit=$limit&order[followedCount]=desc&includes[]=cover_art&availableTranslatedLanguage[]=en&contentRating[]=safe&contentRating[]=suggestive');
+    final url = Uri.parse('$baseUrl/manga?limit=$limit&order[followedCount]=desc&includes[]=cover_art&includes[]=author&availableTranslatedLanguage[]=en&contentRating[]=safe&contentRating[]=suggestive');
 
     final response = await http.get(url);
     if (response.statusCode != 200) {
@@ -23,7 +23,7 @@ class MangaDexApi {
     }
 
     final data = json.decode(response.body);
-    final mangaList = <Map<String, dynamic>>[];
+    final pendingWithRatings = <Future<Map<String, dynamic>>>[];
 
     // print(data);
 
@@ -36,28 +36,37 @@ class MangaDexApi {
         (rel) => rel['type'] == 'cover_art',
         orElse: () => null,
       );
+      // Find author relationship (present due to includes[]=author)
+      final authorRel = manga['relationships'].firstWhere(
+        (rel) => rel['type'] == 'author',
+        orElse: () => null,
+      );
       final fileName = coverRel?['attributes']?['fileName'];
+      final authorName = authorRel?['attributes']?['name'] ?? 'Unknown';
 
       final imageUrl = fileName != null
-          ? 'https://uploads.mangadex.org/covers/$id/$fileName.256.jpg'
+          ? 'https://uploads.mangadex.org/covers/$id/$fileName'
           : 'https://via.placeholder.com/256x400?text=No+Cover';
 
-      mangaList.add({
+      final futureItem = getMangaRating(id).then((rating) => {
         'id': id,
         'title': title,
-        // Keep content rating as separate string metadata; UI uses a numeric rating placeholder
+        'author': authorName,
         'contentRating': manga['attributes']['contentRating'],
         'description': manga['attributes']['description']['en'] ?? '',
+        'chapters': manga['attributes']['lastChapter'] ?? 0,
+        'rating': rating ?? 0.0,
         'coverUrl': imageUrl,
       });
+      pendingWithRatings.add(futureItem);
     }
-
+    final mangaList = await Future.wait(pendingWithRatings);
     return mangaList;
   }
 
   /// Search for manga by title
   static Future<List<Map<String, dynamic>>> searchManga(String query, {int limit = 10}) async {
-    final url = Uri.parse('$baseUrl/manga?title=$query&limit=$limit&includes[]=cover_art');
+    final url = Uri.parse('$baseUrl/manga?title=$query&limit=$limit&includes[]=cover_art&includes[]=author');
 
     final response = await http.get(url);
     if (response.statusCode != 200) {
@@ -77,18 +86,40 @@ class MangaDexApi {
         orElse: () => null,
       );
       final fileName = coverRel?['attributes']?['fileName'];
+      final authorRel = manga['relationships'].firstWhere(
+        (rel) => rel['type'] == 'author',
+        orElse: () => null,
+      );
+      final author = authorRel?['attributes']?['name'] ?? 'Unknown';
 
       final imageUrl = fileName != null
-          ? 'https://uploads.mangadex.org/covers/$id/$fileName.256.jpg'
+          ? 'https://uploads.mangadex.org/covers/$id/$fileName'
           : 'https://via.placeholder.com/256x400?text=No+Cover';
 
+      // print(imageUrl);
       mangaList.add({
         'id': id,
         'title': title,
+        'author': author,
         'coverUrl': imageUrl,
       });
     }
 
     return mangaList;
   }
+  static Future<double?> getMangaRating(String mangaId) async {
+    final url = Uri.parse('$baseUrl/statistics/manga/$mangaId');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final stats = data['statistics'][mangaId];
+      final rating = stats['rating']['bayesian'] ?? stats['rating']['average'];
+      return rating?.toDouble();
+    } else {
+      print('Failed to load rating: ${response.statusCode}');
+      return null;
+    }
+  }
+
 }
