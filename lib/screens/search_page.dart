@@ -10,7 +10,7 @@ class SearchPage extends StatelessWidget {
       {
         'title': 'Omniscient Reader',
         'author': 'Sing Shong',
-        'image': 'https://i.imgur.com/dD0vZsR.jpeg',
+        'image': 'https://orv.pages.dev/assets/covers/orv.webp',
         'rating': 9.3,
         'chapters': 151
       },
