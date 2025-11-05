@@ -33,6 +33,7 @@ class MangaCard extends StatelessWidget {
             ),
           ),
         );
+        // print(imageUrl);
       },
       child: Container(
         width: 140,

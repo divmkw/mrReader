@@ -21,62 +21,63 @@ class MangaPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Manga Reader'),
-        backgroundColor: Colors.black,
+        title: const Text('Manga Reader'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             // Manga Title Section
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Image.network(
-                  imageUrl ?? 'https://orv.pages.dev/assets/covers/orv.webp',
-                  width: 100,
-                  height: 150,
+                ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  child: Image.network(
+                    imageUrl ,
+                    width: 100,
+                    height: 150,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    Text(
-                      author,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
+                      const SizedBox(height: 4),
+                      Text(
+                        author,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
-                    ),
-                    Row(
-                      children: [
-                        Icon(Icons.star, color: Colors.yellow, size: 20),
-                        SizedBox(width: 4),
-                        Text(
-                          '$rating',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white70,
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 20),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$rating',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      '$chapters Chapters',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        '$chapters Chapters',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -107,11 +108,7 @@ class MangaPage extends StatelessWidget {
                   onPressed: () {
                     // Continue Reading functionality
                   },
-                  child: Text('Continue Reading'),
-                  style: ElevatedButton.styleFrom(
-                    // primary: Colors.green,
-                    // onPrimary: Colors.white,
-                  ),
+                  child: const Text('Continue Reading'),
                 ),
               ],
             ),
@@ -122,10 +119,7 @@ class MangaPage extends StatelessWidget {
               children: [
                 Text(
                   'Chapters (1/151)',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -145,15 +139,12 @@ class MangaPage extends StatelessWidget {
             // Description Section
             Text(
               'The only reader of a web novel witnesses it coming to life. Using his knowledge, he must survive the apocalyptic scenario.',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white,
-              ),
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           ],
         ),
       ),
-      backgroundColor: Colors.black,
+      // background uses theme scaffoldBackgroundColor
     );
   }
 }
@@ -165,12 +156,13 @@ class GenreChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Chip(
       label: Text(
         label,
-        style: TextStyle(color: Colors.white),
+        style: TextStyle(color: scheme.onSecondaryContainer),
       ),
-      backgroundColor: Colors.blueGrey,
+      backgroundColor: scheme.secondaryContainer,
     );
   }
 }
