@@ -1,45 +1,49 @@
 import 'package:flutter/material.dart';
 import '../widgets/manga_card.dart';
 // import 'notificaiton_page.dart';
+import '../bloc/manga_fecher.dart';
 
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final mangaList = [
-      {
-        'title': 'Omniscient Reader',
-        'author': 'Sing Shong',
-        'image': 'https://orv.pages.dev/assets/covers/orv.webp',
-        'rating': 9.3,
-        'chapters': 151
-      },
-      {
-        'title': 'Solo Leveling',
-        'author': 'Chugong',
-        'image': 'https://mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/e90bdc47-c8b9-4df7-b2c0-17641b645ee1.jpg',
-        'rating': 9.2,
-        'chapters': 179
-      },
-    ];
+  State<HomePage> createState() => _HomePageState();
+}
 
+class _HomePageState extends State<HomePage> {
+  List<Map<String, dynamic>> _mangaList = [];
+  String? _error;
+
+  @override
+  void initState() {
+      super.initState();
+      loadManga();
+  }
+
+  Future<void> loadManga() async {
+    try {
+      final mangaList = await MangaDexApi.getTrendingManga();
+      setState(() {
+        _error = null;
+        _mangaList = mangaList;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _mangaList = [];
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Rendering uses `_mangaList` loaded in initState
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: ListView(
           children: [
-            // Row(children: [
-            //   Icon(Icons.menu, size: 28),
-            //   Spacer(),
-            //   IconButton(
-            //     icon: Icon(Icons.notifications_none, size: 28),
-            //     onPressed: () {
-            //       // Handle notification button press
-            //     },
-            //   ),
-            // ]),
             Row(children: [
               Icon(Icons.menu, size: 28),
               Spacer(),
@@ -54,42 +58,68 @@ class HomePage extends StatelessWidget {
               Text('Trending Now', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 15),
             ]),
-            SizedBox(
+            SizedBox (
               height: 270,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: mangaList.length,
-                itemBuilder: (context, index) {
-                  final manga = mangaList[index];
-                  return MangaCard(
-                    title: manga['title']! as String,
-                    author: manga['author']! as String,
-                    imageUrl: manga['image']! as String,
-                    rating: manga['rating']! as double,
-                    chapters: manga['chapters']! as int,
-                  );
-                },
-              ),
+              child: _error != null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Failed to load: ${_error}', textAlign: TextAlign.center),
+                          const SizedBox(height: 8),
+                          ElevatedButton(onPressed: loadManga, child: const Text('Retry')),
+                        ],
+                      ),
+                    )
+                  : _mangaList.isEmpty
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _mangaList.length,
+                      itemBuilder: (context, index) {
+                        final manga = _mangaList[index];
+                        return MangaCard(
+                          title: (manga['title'] ?? 'Unknown') as String,
+                          author: (manga['author'] ?? 'Unknown') as String,
+                          imageUrl: (manga['coverUrl'] ?? 'https://orv.pages.dev/assets/covers/orv.webp') as String,
+                          rating: 0.0,
+                          chapters: 0,
+                        );
+                      },
+                    ),
             ),
             const SizedBox(height: 20),
             Text('Top Rated', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 10),
             SizedBox(
               height: 270,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: mangaList.length,
-                itemBuilder: (context, index) {
-                  final manga = mangaList[index];
-                  return MangaCard(
-                    title: manga['title']! as String,
-                    author: manga['author']! as String,
-                    imageUrl: manga['image']! as String,
-                    rating: manga['rating']! as double,
-                    chapters: manga['chapters']! as int,
-                  );
-                },
-              ),
+              child: _error != null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Failed to load: ${_error}', textAlign: TextAlign.center),
+                          const SizedBox(height: 8),
+                          ElevatedButton(onPressed: loadManga, child: const Text('Retry')),
+                        ],
+                      ),
+                    )
+                  : _mangaList.isEmpty
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _mangaList.length,
+                      itemBuilder: (context, index) {
+                        final manga = _mangaList[index];
+                        return MangaCard(
+                          title: (manga['title'] ?? 'Unknown') as String,
+                          author: 'Unknown',
+                          imageUrl: (manga['coverUrl'] ?? 'https://via.placeholder.com/256x400?text=No+Cover') as String,
+                          rating: 0.0,
+                          chapters: 0,
+                        );
+                      },
+                    ),
             ),
           ],
         ),
