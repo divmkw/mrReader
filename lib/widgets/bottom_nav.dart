@@ -15,7 +15,7 @@ class BottomNavBar extends StatelessWidget {
     return NavigationBar(
       height: 65,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      indicatorColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+      indicatorColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
       selectedIndex: selectedIndex,
       onDestinationSelected: onItemTapped,
       labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,

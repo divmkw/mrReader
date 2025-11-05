@@ -21,17 +21,13 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           Text('Reading', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
-          RadioListTile(
-            title: const Text('Vertical (Webtoon style)'),
-            value: 'Vertical',
-            groupValue: readingMode,
-            onChanged: (val) => setState(() => readingMode = val!),
-          ),
-          RadioListTile(
-            title: const Text('Horizontal (Page by page)'),
-            value: 'Horizontal',
-            groupValue: readingMode,
-            onChanged: (val) => setState(() => readingMode = val!),
+          SegmentedButton<String>(
+            segments: const <ButtonSegment<String>>[
+              ButtonSegment<String>(value: 'Vertical', label: Text('Vertical')),
+              ButtonSegment<String>(value: 'Horizontal', label: Text('Horizontal')),
+            ],
+            selected: {readingMode},
+            onSelectionChanged: (selection) => setState(() => readingMode = selection.first),
           ),
           SwitchListTile(
             title: const Text('Auto Bookmark'),
@@ -40,23 +36,14 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const Divider(height: 30),
           Text('Appearance', style: Theme.of(context).textTheme.titleLarge),
-          RadioListTile(
-            title: const Text('Light'),
-            value: 'Light',
-            groupValue: theme,
-            onChanged: (val) => setState(() => theme = val!),
-          ),
-          RadioListTile(
-            title: const Text('Dark'),
-            value: 'Dark',
-            groupValue: theme,
-            onChanged: (val) => setState(() => theme = val!),
-          ),
-          RadioListTile(
-            title: const Text('System'),
-            value: 'System',
-            groupValue: theme,
-            onChanged: (val) => setState(() => theme = val!),
+          SegmentedButton<String>(
+            segments: const <ButtonSegment<String>>[
+              ButtonSegment<String>(value: 'Light', label: Text('Light')),
+              ButtonSegment<String>(value: 'Dark', label: Text('Dark')),
+              ButtonSegment<String>(value: 'System', label: Text('System')),
+            ],
+            selected: {theme},
+            onSelectionChanged: (selection) => setState(() => theme = selection.first),
           ),
           const Divider(height: 30),
           Text('Notifications', style: Theme.of(context).textTheme.titleLarge),

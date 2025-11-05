@@ -213,7 +213,7 @@ class _MangaPageState extends State<MangaPage> {
 class GenreChip extends StatelessWidget {
   final String label;
 
-  GenreChip({required this.label});
+  const GenreChip({super.key, required this.label});
 
   @override
   Widget build(BuildContext context) {

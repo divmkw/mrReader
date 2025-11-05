@@ -32,7 +32,7 @@ class _MangaReaderAppState extends State<MangaReaderApp> {
 
   void _onItemTapped(int index) => setState(() => _selectedIndex = index);
 
-  void _changeTheme(ThemeMode mode) => setState(() => _themeMode = mode);
+  // void _changeTheme(ThemeMode mode) => setState(() => _themeMode = mode);
 
   @override
   Widget build(BuildContext context) {

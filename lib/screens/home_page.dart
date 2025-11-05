@@ -65,7 +65,7 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Failed to load: ${_error}', textAlign: TextAlign.center),
+                          Text('Failed to load: $_error', textAlign: TextAlign.center),
                           const SizedBox(height: 8),
                           ElevatedButton(onPressed: loadManga, child: const Text('Retry')),
                         ],
@@ -108,7 +108,7 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Failed to load: ${_error}', textAlign: TextAlign.center),
+                          Text('Failed to load: $_error', textAlign: TextAlign.center),
                           const SizedBox(height: 8),
                           ElevatedButton(onPressed: loadManga, child: const Text('Retry')),
                         ],
