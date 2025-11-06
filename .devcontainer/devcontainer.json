@@ -1,29 +1,11 @@
 {
-  "name": "Flutter + Android Dev",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "name": "Flutter Dev",
+  "image": "ghcr.io/cirruslabs/flutter:latest",
   "features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {
-      "installZsh": true,
-      "username": "vscode"
+    "ghcr.io/devcontainers/features/android-sdk:1": {
+      "version": "latest",
+      "ndk": true
     }
   },
-  "forwardPorts": [8080, 3000, 5000],
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "Dart-Code.dart-code",
-        "Dart-Code.flutter",
-        "ms-azuretools.vscode-docker",
-        "GitHub.copilot"
-      ],
-      "settings": {
-        "dart.flutterSdkPath": "/opt/flutter/bin",
-        "editor.formatOnSave": true
-      }
-    }
-  },
-  "remoteUser": "vscode",
   "postCreateCommand": "flutter doctor -v"
 }
