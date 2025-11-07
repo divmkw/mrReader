@@ -127,4 +127,41 @@ class MangaDexApi {
     }
   }
 
+  // 🔹 Fetch chapters
+  static Future<List<Map<String, dynamic>>> getChapters(String mangaId) async {
+    final url = Uri.parse('$baseUrl/chapter?manga=$mangaId&translatedLanguage[]=en&order[chapter]=asc');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final chapters = (data['data'] as List).map((c) {
+        final attr = c['attributes'];
+        return {
+          'id': c['id'],
+          'chapter': attr['chapter'],
+          'title': attr['title'],
+        };
+      }).toList();
+      return chapters;
+    } else {
+      throw Exception('Failed to load chapters');
+    }
+  }
+
+  // 🔹 Fetch image URLs for one chapter
+  static Future<List<String>> getChapterPages(String chapterId) async {
+    final url = Uri.parse('$baseUrl/at-home/server/$chapterId');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final baseUrl = data['baseUrl'];
+      final hash = data['chapter']['hash'];
+      final files = List<String>.from(data['chapter']['data']);
+      return files.map((f) => '$baseUrl/data/$hash/$f').toList();
+    } else {
+      throw Exception('Failed to load pages');
+    }
+  }
 }
+

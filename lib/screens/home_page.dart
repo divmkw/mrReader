@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/manga_card.dart';
-// import 'notificaiton_page.dart';
-import '../bloc/manga_fecher.dart';
+import 'notificaiton_page.dart';
+import '../bloc/manga_fetcher.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -47,9 +47,10 @@ class _HomePageState extends State<HomePage> {
             Row(children: [
               Icon(Icons.menu, size: 28),
               Spacer(),
-              IconButton(
-                icon: Icon(Icons.notifications_none, size: 28),
-                onPressed: () {
+              InkWell(
+                child: Icon(Icons.notifications_none, size: 28),
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder:  (context) => NotificationPage()));
                   // Handle notification button press
                 },
               ),
@@ -88,6 +89,7 @@ class _HomePageState extends State<HomePage> {
                             ? rawCh
                             : (rawCh is String ? int.tryParse(rawCh) ?? 0 : 0);
                         return MangaCard(
+                          id:(manga['id'] ?? '0').toString(),
                           title: (manga['title'] ?? 'Unknown').toString(),
                           author: (manga['author'] ?? 'Unknown').toString(),
                           imageUrl: (manga['coverUrl'] ?? 'https://orv.pages.dev/assets/covers/orv.webp').toString(),
@@ -131,6 +133,7 @@ class _HomePageState extends State<HomePage> {
                             ? rawCh
                             : (rawCh is String ? int.tryParse(rawCh) ?? 0 : 0);
                         return MangaCard(
+                          id:(manga['title'] ?? 'Unknown').toString(),
                           title: (manga['title'] ?? 'Unknown').toString(),
                           author: 'Unknown',
                           imageUrl: (manga['coverUrl'] ?? 'https://via.placeholder.com/256x400?text=No+Cover').toString(),

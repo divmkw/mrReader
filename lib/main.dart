@@ -20,7 +20,7 @@ class MangaReaderApp extends StatefulWidget {
 
 class _MangaReaderAppState extends State<MangaReaderApp> {
   int _selectedIndex = 0;
-  ThemeMode _themeMode = ThemeMode.system;
+  final ThemeMode _themeMode = ThemeMode.system;
 
   final List<Widget> _pages = const [
     HomePage(),

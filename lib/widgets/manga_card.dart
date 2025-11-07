@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../screens/manga_page.dart';
 
 class MangaCard extends StatelessWidget {
+  final String id;
   final String title;
   final String author;
   final String imageUrl;
@@ -11,6 +12,7 @@ class MangaCard extends StatelessWidget {
 
   const MangaCard({
     super.key,
+    required this.id,
     required this.title,
     required this.author,
     required this.imageUrl,
@@ -27,6 +29,7 @@ class MangaCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => MangaPage(
+              id: id,
               title: title,
               author: author,
               imageUrl: imageUrl,

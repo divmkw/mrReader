@@ -45,7 +45,7 @@ class _NotificationPageState extends State<NotificationPage> {
       author: '',
       rating: 9.2,
       chapters: 187,
-      thumbnail: 'https://via.placeholder.com/120x160.png?text=Solo+Leveling',
+      thumbnail: 'https://orv.pages.dev/assets/covers/orv.webp',
       time: DateTime.now().subtract(const Duration(minutes: 30)),
     ),
     NotificationModel(
@@ -54,7 +54,7 @@ class _NotificationPageState extends State<NotificationPage> {
       author: '',
       rating: 9.2,
       chapters: 85,
-      thumbnail: 'https://via.placeholder.com/120x160.png?text=Kaiju+No.+8',
+      thumbnail: 'https://orv.pages.dev/assets/covers/orv.webp',
       time: DateTime.now().subtract(const Duration(hours: 3)),
     ),
     NotificationModel(
@@ -63,7 +63,7 @@ class _NotificationPageState extends State<NotificationPage> {
       author: '',
       rating: 9.2,
       chapters: 1092,
-      thumbnail: 'https://via.placeholder.com/120x160.png?text=One+Piece',
+      thumbnail: 'https://orv.pages.dev/assets/covers/orv.webp',
       time: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
     ),
   ];
@@ -119,6 +119,7 @@ class _NotificationPageState extends State<NotificationPage> {
                       // Using the existing MangaCard widget for visual display.
                       // Expected MangaCard signature: MangaCard({title, imageUrl, subtitle, onTap})
                       MangaCard(
+                        id : notif.id,
                         title: notif.title,
                         imageUrl: notif.thumbnail,
                         author: notif.author ,

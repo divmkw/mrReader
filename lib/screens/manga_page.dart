@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:mangareader/screens/reading_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 
 class MangaPage extends StatefulWidget {
+  final String id;
   final String title;
   final String author;
   final String imageUrl;
@@ -13,6 +15,7 @@ class MangaPage extends StatefulWidget {
 
   const MangaPage({
     super.key,
+    required this.id,
     required this.title,
     required this.author,
     required this.imageUrl,
@@ -72,6 +75,7 @@ class _MangaPageState extends State<MangaPage> {
 
     if (!isBookmarked) {
       list.add({
+        'id' :widget.id,
         'title': widget.title,
         'author': widget.author,
         'imageUrl': widget.imageUrl,
@@ -167,6 +171,20 @@ class _MangaPageState extends State<MangaPage> {
                 SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ReaderPage(
+                          id: widget.id,
+                          title: widget.title,
+                          author: widget.author,
+                          imageUrl: widget.imageUrl,
+                          rating: widget.rating,
+                          chapters: widget.chapters,
+                          description: widget.description,
+                        ),
+                      ),
+                    );
                     // Continue Reading functionality
                   },
                   child: const Text('Continue Reading'),

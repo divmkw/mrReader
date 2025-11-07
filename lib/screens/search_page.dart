@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/manga_card.dart';
-import '../bloc/manga_fecher.dart';
+import '../bloc/manga_fetcher.dart';
+import '../services/search_history_manager.dart';
 import 'dart:async';
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -12,6 +13,7 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, dynamic>> _results = [];
+  final List<String> _suggestions = [];
   Timer? _debounce;
   bool _isLoading = false;
 
@@ -20,6 +22,27 @@ class _SearchPageState extends State<SearchPage> {
     _debounce?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentSearches();
+  }
+
+  Future<void> _loadRecentSearches() async {
+    final List<String> searches = await SearchHistoryManager().getRecentSearches();
+    setState(() {
+      _suggestions.addAll(searches);
+    });
+  }
+
+  Future<void> _addSearch(String search) async {
+    await SearchHistoryManager().addSearch(search);
+    setState(() {
+      _suggestions.clear();
+      _loadRecentSearches();
+    });
   }
 
   void _onQueryChanged(String query) {
@@ -39,6 +62,10 @@ class _SearchPageState extends State<SearchPage> {
       try {
         final list = await MangaDexApi.searchManga(query, limit: 20);
         if (!mounted) return;
+        
+        // Add search to history when results are successfully loaded
+        await _addSearch(query.trim());
+        
         setState(() {
           _results
             ..clear()
@@ -65,7 +92,8 @@ class _SearchPageState extends State<SearchPage> {
             const SizedBox(height: 10),
             TextField(
               controller: _controller,
-              onChanged: _onQueryChanged,
+              // onChanged: _onQueryChanged,
+              onSubmitted: _onQueryChanged,
               decoration: InputDecoration(
                 hintText: 'Search manga, manhwa, authors...',
                 prefixIcon: const Icon(Icons.search),
@@ -77,6 +105,36 @@ class _SearchPageState extends State<SearchPage> {
               ),
             ),
             const SizedBox(height: 20),
+            
+            // Show suggestions when search field is empty or has text but no results yet
+            if (_controller.text.isEmpty && _suggestions.isNotEmpty) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Recent Searches', style: Theme.of(context).textTheme.titleMedium),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 40,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _suggestions.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ActionChip(
+                        label: Text(_suggestions[index]),
+                        onPressed: () {
+                          _controller.text = _suggestions[index];
+                          _onQueryChanged(_suggestions[index]);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+            
             if (_isLoading) const LinearProgressIndicator(minHeight: 2),
             Expanded(
               child: GridView.builder(
@@ -101,6 +159,7 @@ class _SearchPageState extends State<SearchPage> {
                       : (rawCh is String ? int.tryParse(rawCh) ?? 0 : 0);
 
                   return MangaCard(
+                    id:manga['id'] as String? ?? '0' ,
                     title: manga['title'] as String? ?? 'Unknown',
                     author: manga['author'] as String? ?? 'Unknown',
                     imageUrl: manga['coverUrl'] as String? ?? 'https://via.placeholder.com/256x400?text=No+Cover',

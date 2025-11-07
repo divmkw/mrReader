@@ -96,9 +96,10 @@ class _LibraryPageState extends State<LibraryPage> {
                   : (rawCh is String ? int.tryParse(rawCh) ?? 0 : 0);
 
               return MangaCard(
+                id: (m['title'] ?? '0').toString(),
                 title: (m['title'] ?? 'Unknown').toString(),
                 author: (m['author'] ?? 'Unknown').toString(),
-                imageUrl: (m['imageUrl'] ?? 'https://via.placeholder.com/256x400?text=No+Cover').toString(),
+                imageUrl: (m['imageUrl'] ?? 'https://orv.pages.dev/assets/covers/orv.webp').toString(),
                 rating: displayRating,
                 chapters: chapters,
                 description: (m['description'] ?? '').toString(),
