@@ -1,0 +1,11 @@
+{
+  "name": "Flutter Dev",
+  "image": "ghcr.io/cirruslabs/flutter:latest",
+  "features": {
+    "ghcr.io/devcontainers/features/android-sdk:1": {
+      "version": "latest",
+      "ndk": true
+    }
+  },
+  "postCreateCommand": "flutter doctor -v"
+}
