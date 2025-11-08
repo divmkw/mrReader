@@ -1,6 +1,7 @@
 // lib/screens/reader_page.dart
 import 'package:flutter/material.dart';
 import '../bloc/manga_fetcher.dart';
+import '../bloc/chapter_fetcher.dart';
 
 class ReaderPage extends StatefulWidget {
   final String id;

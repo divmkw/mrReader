@@ -1,4 +1,5 @@
 import 'dart:convert';
+// import 'dart:developer';
 import 'package:http/http.dart' as http;
 
 void main (){
@@ -31,6 +32,7 @@ class MangaDexApi {
       final title = manga['attributes']['title']['en'] ??
           (manga['attributes']['title'].values.isNotEmpty ? manga['attributes']['title'].values.first : 'Unknown');
       final id = manga['id'];
+      
       // Find cover art relationship
       final coverRel = manga['relationships'].firstWhere(
         (rel) => rel['type'] == 'cover_art',
@@ -130,6 +132,8 @@ class MangaDexApi {
   // 🔹 Fetch chapters
   static Future<List<Map<String, dynamic>>> getChapters(String mangaId) async {
     final url = Uri.parse('$baseUrl/chapter?manga=$mangaId&translatedLanguage[]=en&order[chapter]=asc');
+
+    
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -158,6 +162,7 @@ class MangaDexApi {
       final baseUrl = data['baseUrl'];
       final hash = data['chapter']['hash'];
       final files = List<String>.from(data['chapter']['data']);
+      print(files) ;
       return files.map((f) => '$baseUrl/data/$hash/$f').toList();
     } else {
       throw Exception('Failed to load pages');
