@@ -16,7 +16,7 @@ class MangaDexApi {
   /// Fetch trending or popular manga
   static Future<List<Map<String, dynamic>>> getTrendingManga({int limit = 10}) async {
     // Using followedCount for popularity; include cover art and filter to EN and safe/suggestive content
-    final url = Uri.parse('$baseUrl/manga?limit=$limit&order[followedCount]=desc&includes[]=cover_art&includes[]=author&availableTranslatedLanguage[]=en&contentRating[]=safe&contentRating[]=suggestive');
+    final url = Uri.parse('$baseUrl/manga?&order[followedCount]=desc&includes[]=cover_art&includes[]=author&availableTranslatedLanguage[]=en&contentRating[]=safe&contentRating[]=suggestive');
 
     final response = await http.get(url);
     if (response.statusCode != 200) {
@@ -168,5 +168,13 @@ class MangaDexApi {
       throw Exception('Failed to load pages');
     }
   }
+  // Future<List<String>> _loadFirstChapter(String mangaId) async {
+  //   final chapters = await MangaDexApi.getChapters(mangaId);
+  //   if (chapters.isEmpty) throw Exception('No chapters found for this manga.');
+  //   final firstChapterId = chapters.last['id']; // or .first for oldest
+  //   return MangaDexApi.getChapterPages(firstChapterId); // or .first for oldest
+  // }
+
+
 }
 

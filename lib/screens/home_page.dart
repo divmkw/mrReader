@@ -42,8 +42,10 @@ class _HomePageState extends State<HomePage> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: ListView(
-          children: [
+        child: RefreshIndicator(
+          onRefresh: loadManga,
+          child: ListView(
+            children: [
             Row(children: [
               Icon(Icons.menu, size: 28),
               Spacer(),
@@ -144,7 +146,7 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
             ),
-          ],
+          ],),
         ),
       ),
     );

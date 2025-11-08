@@ -17,6 +17,7 @@ dependencies:
   flutter_spinkit: ^5.1.0  # Loading indicators
   shared_preferences: ^2.1.1 # For local storage
   url_launcher: ^6.1.10 # To open URLs in the browser
+  photo_view: ^0.15.0 # For image zooming
 
 dev_dependencies:
   flutter_test:
