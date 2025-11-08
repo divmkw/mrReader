@@ -208,9 +208,7 @@ class _ReaderPageState extends State<ReaderPage> {
                         // Title
                         if (_currentChapterIndex >= 0)
                           Text(
-                            _chapters[_currentChapterIndex]['title'] != null
-                                ? _chapters[_currentChapterIndex]['title']
-                                : 'Chapter ${_chapters[_currentChapterIndex]['chapter'] ?? 'N/A'}',
+                            _chapters[_currentChapterIndex]['title'] ?? 'Chapter ${_chapters[_currentChapterIndex]['chapter'] ?? 'N/A'}',
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

@@ -12,6 +12,7 @@ void main (){
 
 class MangaDexApi {
   static const String baseUrl = 'https://api.mangadex.org';
+  static final Map<String, List<Map<String, dynamic>>> _chapterCache = {};
 
   /// Fetch trending or popular manga
   static Future<List<Map<String, dynamic>>> getTrendingManga({int limit = 10}) async {
@@ -130,26 +131,48 @@ class MangaDexApi {
   }
 
   // 🔹 Fetch chapters
-  static Future<List<Map<String, dynamic>>> getChapters(String mangaId) async {
-    final url = Uri.parse('$baseUrl/chapter?manga=$mangaId&translatedLanguage[]=en&order[chapter]=asc');
-
-    
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final chapters = (data['data'] as List).map((c) {
-        final attr = c['attributes'];
-        return {
-          'id': c['id'],
-          'chapter': attr['chapter'],
-          'title': attr['title'],
-        };
-      }).toList();
-      return chapters;
-    } else {
-      throw Exception('Failed to load chapters');
+    static Future<List<Map<String, dynamic>>> getChapters(String mangaId) async {
+    // ✅ Return cached chapters if available
+    if (_chapterCache.containsKey(mangaId)) {
+      return _chapterCache[mangaId]!;
     }
+
+    final List<Map<String, dynamic>> allChapters = [];
+    int offset = 0;
+    const int limit = 100;
+
+    while (true) {
+      final url = Uri.parse(
+        '$baseUrl/chapter?manga=$mangaId&translatedLanguage[]=en&order[chapter]=asc&limit=$limit&offset=$offset',
+      );
+
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final chapters = (data['data'] as List).map((c) {
+          final attr = c['attributes'];
+          return {
+            'id': c['id'],
+            'chapter': attr['chapter'],
+            'title': attr['title'] ?? 'Chapter ${attr['chapter'] ?? 'N/A'}',
+          };
+        }).toList();
+
+        allChapters.addAll(chapters);
+
+        final total = data['total'] ?? 0;
+        offset += limit;
+
+        if (offset >= total || chapters.isEmpty) break;
+      } else {
+        throw Exception('Failed to load chapters (status: ${response.statusCode})');
+      }
+    }
+
+    // ✅ Cache results
+    _chapterCache[mangaId] = allChapters;
+    return allChapters;
   }
 
   // 🔹 Fetch image URLs for one chapter
@@ -162,19 +185,11 @@ class MangaDexApi {
       final baseUrl = data['baseUrl'];
       final hash = data['chapter']['hash'];
       final files = List<String>.from(data['chapter']['data']);
-      print(files) ;
       return files.map((f) => '$baseUrl/data/$hash/$f').toList();
     } else {
       throw Exception('Failed to load pages');
     }
   }
-  // Future<List<String>> _loadFirstChapter(String mangaId) async {
-  //   final chapters = await MangaDexApi.getChapters(mangaId);
-  //   if (chapters.isEmpty) throw Exception('No chapters found for this manga.');
-  //   final firstChapterId = chapters.last['id']; // or .first for oldest
-  //   return MangaDexApi.getChapterPages(firstChapterId); // or .first for oldest
-  // }
-
-
+  
 }
 
