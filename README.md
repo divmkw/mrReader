@@ -92,6 +92,3 @@ lib/
 ## License
 This project is for educational purposes. Check MangaDex terms when using their API/CDN.
 
-# mangareader
-
-A new Flutter project.
