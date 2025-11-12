@@ -1,99 +1,34 @@
+// lib/pages/search_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/search_provider.dart';
+import '../providers/search_history_provider.dart';
 import '../widgets/manga_card.dart';
-import '../bloc/manga_fetcher.dart';
-import '../services/search_history_manager.dart';
-import 'dart:async';
-class SearchPage extends StatefulWidget {
+
+class SearchPage extends ConsumerWidget {
   const SearchPage({super.key});
 
   @override
-  State<SearchPage> createState() => _SearchPageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final searchAsync = ref.watch(searchProvider);
+    final history = ref.watch(searchHistoryProvider);
+    final controller = TextEditingController();
 
-class _SearchPageState extends State<SearchPage> {
-  final TextEditingController _controller = TextEditingController();
-  final List<Map<String, dynamic>> _results = [];
-  final List<String> _suggestions = [];
-  Timer? _debounce;
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadRecentSearches();
-  }
-
-  Future<void> _loadRecentSearches() async {
-    final List<String> searches = await SearchHistoryManager().getRecentSearches();
-    setState(() {
-      _suggestions.addAll(searches);
-    });
-  }
-
-  Future<void> _addSearch(String search) async {
-    await SearchHistoryManager().addSearch(search);
-    setState(() {
-      _suggestions.clear();
-      _loadRecentSearches();
-    });
-  }
-
-  void _onQueryChanged(String query) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () async {
-      if (!mounted) return;
-      if (query.trim().isEmpty) {
-        setState(() {
-          _results.clear();
-          _isLoading = false;
-        });
-        return;
-      }
-      setState(() {
-        _isLoading = true;
-      });
-      try {
-        final list = await MangaDexApi.searchManga(query, limit: 20);
-        if (!mounted) return;
-        
-        // Add search to history when results are successfully loaded
-        await _addSearch(query.trim());
-        
-        setState(() {
-          _results
-            ..clear()
-            ..addAll(list);
-          _isLoading = false;
-        });
-      } catch (_) {
-        if (!mounted) return;
-        setState(() {
-          _results.clear();
-          _isLoading = false;
-        });
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
             const SizedBox(height: 10),
+
+            // Search Bar
             TextField(
-              controller: _controller,
-              // onChanged: _onQueryChanged,
-              onSubmitted: _onQueryChanged,
+              controller: controller,
+              onChanged: (q) => ref.read(searchProvider.notifier).search(q),
+              onSubmitted: (q) {
+                ref.read(searchHistoryProvider.notifier).add(q);
+                ref.read(searchProvider.notifier).search(q);
+              },
               decoration: InputDecoration(
                 hintText: 'Search manga, manhwa, authors...',
                 prefixIcon: const Icon(Icons.search),
@@ -104,70 +39,104 @@ class _SearchPageState extends State<SearchPage> {
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
-            
-            // Show suggestions when search field is empty or has text but no results yet
-            if (_controller.text.isEmpty && _suggestions.isNotEmpty) ...[
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Recent Searches', style: Theme.of(context).textTheme.titleMedium),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                height: 40,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _suggestions.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ActionChip(
-                        label: Text(_suggestions[index]),
-                        onPressed: () {
-                          _controller.text = _suggestions[index];
-                          _onQueryChanged(_suggestions[index]);
-                        },
+
+            // Recent Searches
+            if (controller.text.isEmpty)
+              history.when(
+                data: (historyList) {
+                  if (historyList.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Recent Searches',
+                              style: Theme.of(context).textTheme.titleMedium),
+                          TextButton(
+                            onPressed: () =>
+                                ref.read(searchHistoryProvider.notifier).clear(),
+                            child: const Text('Clear All'),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-            
-            if (_isLoading) const LinearProgressIndicator(minHeight: 2),
-            Expanded(
-              child: GridView.builder(
-                itemCount: _results.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisExtent: 270,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemBuilder: (context, index) {
-                  final manga = _results[index];
-                  final dynamic rawRating = manga['rating'];
-                  final double safeRating = rawRating is num
-                      ? rawRating.toDouble()
-                      : (rawRating is String ? double.tryParse(rawRating) ?? 0.0 : 0.0);
-                  final double displayRating = double.parse(safeRating.toStringAsFixed(2));
-
-                  final dynamic rawCh = manga['chapters'];
-                  final int safeChapters = rawCh is int
-                      ? rawCh
-                      : (rawCh is String ? int.tryParse(rawCh) ?? 0 : 0);
-
-                  return MangaCard(
-                    id:manga['id'] as String? ?? '0' ,
-                    title: manga['title'] as String? ?? 'Unknown',
-                    author: manga['author'] as String? ?? 'Unknown',
-                    imageUrl: manga['coverUrl'] as String? ?? 'https://via.placeholder.com/256x400?text=No+Cover',
-                    rating: displayRating,
-                    chapters: safeChapters,
-                    description: manga['description'] as String? ?? '',
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 40,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: historyList.length,
+                          itemBuilder: (context, index) {
+                            final item = historyList[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ActionChip(
+                                label: Text(item),
+                                onPressed: () {
+                                  controller.text = item;
+                                  ref
+                                      .read(searchProvider.notifier)
+                                      .search(item);
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                   );
                 },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
+            // Results
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: searchAsync.when(
+                  data: (results) {
+                    if (results.isEmpty) {
+                      return const Center(
+                          child: Text('No results found. Try another query.'));
+                    }
+                    return GridView.builder(
+                      itemCount: results.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisExtent: 270,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final manga = results[index];
+                        final double rating = _safeDouble(manga['rating']);
+                        final int chapters = _safeInt(manga['chapters']);
+
+                        return MangaCard(
+                          id: (manga['id'] ?? '0').toString(),
+                          title: (manga['title'] ?? 'Unknown').toString(),
+                          author: (manga['author'] ?? 'Unknown').toString(),
+                          imageUrl: (manga['coverUrl'] ??
+                                  'https://via.placeholder.com/256x400?text=No+Cover')
+                              .toString(),
+                          rating: rating,
+                          chapters: chapters,
+                          description: (manga['description'] ?? '').toString(),
+                        );
+                      },
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (err, _) => Center(
+                    child: Text('Error: $err'),
+                  ),
+                ),
               ),
             ),
           ],
@@ -175,4 +144,10 @@ class _SearchPageState extends State<SearchPage> {
       ),
     );
   }
+
+  double _safeDouble(dynamic value) =>
+      value is num ? double.parse(value.toStringAsFixed(2)) : 0.0;
+
+  int _safeInt(dynamic value) =>
+      value is int ? value : int.tryParse(value?.toString() ?? '') ?? 0;
 }

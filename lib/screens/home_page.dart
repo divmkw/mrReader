@@ -1,154 +1,166 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/manga_card.dart';
-import 'notificaiton_page.dart';
-import '../bloc/manga_fetcher.dart';
+import '../providers/manga_provider.dart';
+import 'notification_page.dart';
 
-
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mangaAsync = ref.watch(trendingMangaProvider);
 
-class _HomePageState extends State<HomePage> {
-  List<Map<String, dynamic>> _mangaList = [];
-  String? _error;
-
-  @override
-  void initState() {
-      super.initState();
-      loadManga();
-  }
-
-  Future<void> loadManga() async {
-    try {
-      final mangaList = await MangaDexApi.getTrendingManga();
-      setState(() {
-        _error = null;
-        _mangaList = mangaList;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _mangaList = [];
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Rendering uses `_mangaList` loaded in initState
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: RefreshIndicator(
-          onRefresh: loadManga,
+          onRefresh: () async => ref.refresh(trendingMangaProvider.future),
           child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
-            Row(children: [
-              Icon(Icons.menu, size: 28),
-              Spacer(),
-              InkWell(
-                child: Icon(Icons.notifications_none, size: 28),
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder:  (context) => NotificationPage()));
-                  // Handle notification button press
-                },
+              // Top bar
+              Row(
+                children: [
+                  const Icon(Icons.menu, size: 28),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none, size: 28),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
-              Icon(Icons.trending_up),
+
               const SizedBox(height: 10),
-              Text('Trending Now', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 15),
-            ]),
-            SizedBox (
-              height: 270,
-              child: _error != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Failed to load: $_error', textAlign: TextAlign.center),
-                          const SizedBox(height: 8),
-                          ElevatedButton(onPressed: loadManga, child: const Text('Retry')),
-                        ],
-                      ),
-                    )
-                  : _mangaList.isEmpty
-                      ? const Center(child: CircularProgressIndicator())
-                      : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _mangaList.length,
-                      itemBuilder: (context, index) {
-                        final manga = _mangaList[index];
-                        final dynamic rawRating = manga['rating'];
-                        final double safeRating = rawRating is num
-                            ? rawRating.toDouble()
-                            : (rawRating is String ? double.tryParse(rawRating) ?? 0.0 : 0.0);
-                        final double displayRating = double.parse(safeRating.toStringAsFixed(2));
-                        final dynamic rawCh = manga['chapters'];
-                        final int safeChapters = rawCh is int
-                            ? rawCh
-                            : (rawCh is String ? int.tryParse(rawCh) ?? 0 : 0);
-                        return MangaCard(
-                          id:(manga['id'] ?? '0').toString(),
+
+              // Trending section header
+              Row(
+                children: [
+                  const Icon(Icons.trending_up),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Trending Now',
+                      style: Theme.of(context).textTheme.titleLarge,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              // Trending manga list
+              SizedBox(
+                height: 270,
+                child: mangaAsync.when(
+                  data: (mangaList) => ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: mangaList.length,
+                    itemBuilder: (context, index) {
+                      final manga = mangaList[index];
+                      final double rating = _twoDecimal(_safeDouble(manga['rating']));
+                      final int chapters = _safeInt(manga['chapters']);
+
+                      return SizedBox(
+                        width: 160, // Prevent overflow in horizontal list
+                        child: MangaCard(
+                          id: (manga['id'] ?? '0').toString(),
                           title: (manga['title'] ?? 'Unknown').toString(),
                           author: (manga['author'] ?? 'Unknown').toString(),
-                          imageUrl: (manga['coverUrl'] ?? 'https://orv.pages.dev/assets/covers/orv.webp').toString(),
-                          rating: displayRating,
-                          chapters: safeChapters,
+                          imageUrl: (manga['coverUrl'] ??
+                                  'https://orv.pages.dev/assets/covers/orv.webp')
+                              .toString(),
+                          rating: rating,
+                          chapters: chapters,
                           description: (manga['description'] ?? '').toString(),
-                        );
-                      },
+                        ),
+                      );
+                    },
+                  ),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Failed to load: $err',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton(
+                          onPressed: () => ref.refresh(trendingMangaProvider),
+                          child: const Text('Retry'),
+                        ),
+                      ],
                     ),
-            ),
-            const SizedBox(height: 20),
-            Text('Top Rated', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 270,
-              child: _error != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Failed to load: $_error', textAlign: TextAlign.center),
-                          const SizedBox(height: 8),
-                          ElevatedButton(onPressed: loadManga, child: const Text('Retry')),
-                        ],
-                      ),
-                    )
-                  : _mangaList.isEmpty
-                      ? const Center(child: CircularProgressIndicator())
-                      : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _mangaList.length,
-                      itemBuilder: (context, index) {
-                        final manga = _mangaList[index];
-                        final dynamic rawRating = manga['rating'];
-                        final double safeRating = rawRating is num
-                            ? rawRating.toDouble()
-                            : (rawRating is String ? double.tryParse(rawRating) ?? 0.0 : 0.0);
-                        final double displayRating = double.parse(safeRating.toStringAsFixed(2));
-                        final dynamic rawCh = manga['chapters'];
-                        final int safeChapters = rawCh is int
-                            ? rawCh
-                            : (rawCh is String ? int.tryParse(rawCh) ?? 0 : 0);
-                        return MangaCard(
-                          id:(manga['title'] ?? 'Unknown').toString(),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Top rated section
+              Text('Top Rated', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 10),
+
+              SizedBox(
+                height: 270,
+                child: mangaAsync.when(
+                  data: (mangaList) => ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: mangaList.length,
+                    itemBuilder: (context, index) {
+                      final manga = mangaList[index];
+                      final double rating = _twoDecimal(_safeDouble(manga['rating']));
+                      final int chapters = _safeInt(manga['chapters']);
+
+                      return SizedBox(
+                        width: 160,
+                        child: MangaCard(
+                          id: (manga['id'] ?? '0').toString(),
                           title: (manga['title'] ?? 'Unknown').toString(),
-                          author: 'Unknown',
-                          imageUrl: (manga['coverUrl'] ?? 'https://via.placeholder.com/256x400?text=No+Cover').toString(),
-                          rating: displayRating,
-                          chapters: safeChapters,
+                          author: (manga['author'] ?? 'Unknown').toString(),
+                          imageUrl: (manga['coverUrl'] ??
+                                  'https://via.placeholder.com/256x400?text=No+Cover')
+                              .toString(),
+                          rating: rating,
+                          chapters: chapters,
                           description: (manga['description'] ?? '').toString(),
-                        );
-                      },
-                    ),
-            ),
-          ],),
+                        ),
+                      );
+                    },
+                  ),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(
+                    child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  /// Ensures number is parsed safely as double
+  double _safeDouble(dynamic value) =>
+      value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0.0;
+
+  /// Ensures number is parsed safely as int
+  int _safeInt(dynamic value) =>
+      value is int ? value : int.tryParse(value?.toString() ?? '') ?? 0;
+
+  /// Formats to 2 decimal places safely
+  double _twoDecimal(double value) =>
+      double.parse(value.toStringAsFixed(2));
 }

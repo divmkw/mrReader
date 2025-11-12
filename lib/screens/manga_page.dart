@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../bloc/manga_fetcher.dart';
+import 'package:mangareader/providers/manga_provider.dart';
 import 'reading_page.dart';
 
-class MangaPage extends StatefulWidget {
+class MangaPage extends ConsumerWidget {
   final String id;
   final String title;
   final String author;
@@ -26,82 +25,38 @@ class MangaPage extends StatefulWidget {
   });
 
   @override
-  State<MangaPage> createState() => _MangaPageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chaptersAsync = ref.watch(chaptersProvider(id));
+    // final isBookmarked = ref.watch(bookmarkProvider(id));
+    final bookmarkNotifier = ref.watch(bookmarkProvider(id));
+    final isBookmarked = bookmarkNotifier.isBookmarked;
 
-class _MangaPageState extends State<MangaPage> {
-  late Future<List<Map<String, dynamic>>> _chaptersFuture;
-  bool _isBookmarked = false;
 
-  static const String _bookmarkIdsKey = 'bookmarked_manga_ids';
-  static const String _bookmarkPrefix = 'bookmark_'; // will store metadata per manga id
+    final lastRead = ref.watch(lastReadProvider(id));
 
-  @override
-  void initState() {
-    super.initState();
-    _chaptersFuture = MangaDexApi.getChapters(widget.id);
-    _loadBookmarkState();
-  }
-
-  Future<void> _loadBookmarkState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final ids = prefs.getStringList(_bookmarkIdsKey) ?? [];
-    setState(() {
-      _isBookmarked = ids.contains(widget.id);
-    });
-  }
-
-  Future<void> _toggleBookmark() async {
-    final prefs = await SharedPreferences.getInstance();
-    final ids = prefs.getStringList(_bookmarkIdsKey) ?? [];
-
-    if (_isBookmarked) {
-      // remove bookmark
-      ids.remove(widget.id);
-      await prefs.setStringList(_bookmarkIdsKey, ids);
-      await prefs.remove('$_bookmarkPrefix${widget.id}');
-      setState(() => _isBookmarked = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Removed from bookmarks')),
-      );
-    } else {
-      // add bookmark
-      if (!ids.contains(widget.id)) ids.add(widget.id);
-      await prefs.setStringList(_bookmarkIdsKey, ids);
-
-      final meta = {
-        'id': widget.id,
-        'title': widget.title,
-        'author': widget.author,
-        'imageUrl': widget.imageUrl,
-        'rating': widget.rating,
-        'chapters': widget.chapters,
-        'description': widget.description,
-        'savedAt': DateTime.now().toIso8601String(),
-      };
-      await prefs.setString('$_bookmarkPrefix${widget.id}', jsonEncode(meta));
-      setState(() => _isBookmarked = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saved to bookmarks')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: Text(widget.title, style: const TextStyle(color: Colors.white)),
+        title: Text(title, style: const TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            onPressed: _toggleBookmark,
-            icon: _isBookmarked
-                ? const Icon(Icons.bookmark, color: Colors.amber)
-                : const Icon(Icons.bookmark_border, color: Colors.white),
-            tooltip: _isBookmarked ? 'Remove bookmark' : 'Add bookmark',
+            icon: Icon(
+              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+              color: isBookmarked ? Colors.amber : Colors.white,
+            ),
+            onPressed: () {
+              ref.read(bookmarkProvider(id)).toggleBookmark({
+                'id': id,
+                'title': title,
+                'author': author,
+                'imageUrl': imageUrl,
+                'rating': rating,
+                'chapters': chapters,
+                'description': description,
+              });
+            },
           ),
         ],
       ),
@@ -109,7 +64,7 @@ class _MangaPageState extends State<MangaPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🔹 Cover + Info
+            // Cover Section
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Row(
@@ -118,23 +73,15 @@ class _MangaPageState extends State<MangaPage> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: CachedNetworkImage(
-                      imageUrl: widget.imageUrl,
+                      imageUrl: imageUrl,
                       width: 120,
                       height: 180,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
+                      placeholder: (_, __) => Container(
                         width: 120,
                         height: 180,
                         color: Colors.grey[800],
-                        child: const Center(
-                          child: CircularProgressIndicator(color: Colors.white70),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        width: 120,
-                        height: 180,
-                        color: Colors.grey[800],
-                        child: const Icon(Icons.broken_image, color: Colors.redAccent),
+                        child: const Center(child: CircularProgressIndicator()),
                       ),
                     ),
                   ),
@@ -143,111 +90,112 @@ class _MangaPageState extends State<MangaPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.title,
+                        Text(title,
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
-                        Text('By ${widget.author}',
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 14)),
+                        Text('By $author',
+                            style: const TextStyle(color: Colors.white70)),
                         const SizedBox(height: 4),
-                        Text('Rating: ${widget.rating.toStringAsFixed(1)} ⭐',
+                        Text('Rating: ${rating.toStringAsFixed(1)} ⭐',
                             style: const TextStyle(color: Colors.amber)),
+                        const SizedBox(height: 10),
+                        if (lastRead.lastReadIndex > 0)
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ReaderPage(
+                                    id: id,
+                                    title: title,
+                                    author: author,
+                                    imageUrl: imageUrl,
+                                    rating: rating,
+                                    chapters: chapters,
+                                    description: description,
+                                    initialChapterIndex: lastRead.lastReadIndex,
+                                    // chapterIndex: lastRead.toString(),
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.play_arrow),
+                            label: const Text("Resume Reading"),
+                          ),
                       ],
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
 
-            // 🔹 Description
+            // Description
             Padding(
               padding: const EdgeInsets.all(12.0),
-              child: Text(widget.description,
+              child: Text(description,
                   style: const TextStyle(color: Colors.white70, height: 1.4)),
             ),
 
             const Divider(color: Colors.white24),
 
-            // 🔹 Chapter List header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              child: const Text("Chapters",
+            const Padding(
+              padding: EdgeInsets.all(12.0),
+              child: Text("Chapters",
                   style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 18)),
             ),
 
-            // 🔹 Chapters FutureBuilder
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: _chaptersFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: Padding(
-                    padding: EdgeInsets.all(20.0),
-                    child: CircularProgressIndicator(color: Colors.white),
-                  ));
-                } else if (snapshot.hasError) {
-                  return Center(
-                      child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Text('Error loading chapters: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.redAccent)),
-                  ));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                      child: Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: Text('No chapters found.',
-                        style: TextStyle(color: Colors.white70)),
-                  ));
-                }
+            chaptersAsync.when(
+              data: (chapters) => ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: chapters.length,
+                itemBuilder: (context, index) {
+                  final chapter = chapters[index];
+                  final title = chapter['title'] ?? 'Chapter ${chapter['chapter'] ?? 'N/A'}';
 
-                final chapters = snapshot.data!;
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: chapters.length,
-                  separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
-                  itemBuilder: (context, index) {
-                    final chapter = chapters[index];
-                    final title = chapter['title'] ?? 'Chapter ${chapter['chapter'] ?? 'N/A'}';
-                    final chapterNum = chapter['chapter'] ?? '';
+                  return ListTile(
+                    title: Text(title, style: const TextStyle(color: Colors.white)),
+                    subtitle: Text('Chapter ${chapter['chapter'] ?? ''}',
+                        style: const TextStyle(color: Colors.white54)),
+                    trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                    onTap: () async {
+                      // update last read
+                      await ref.read(lastReadProvider(id)).updateLastRead(index); // update last read
 
-                    return ListTile(
-                      dense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      title: Text(title, style: const TextStyle(color: Colors.white)),
-                      subtitle: Text('Chapter ${chapterNum}', style: const TextStyle(color: Colors.white54)),
-                      trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                      onTap: () {
-                        // Open ReaderPage — ReaderPage will fetch chapter pages by itself
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ReaderPage(
-                              id: widget.id,
-                              title: widget.title,
-                              author: widget.author,
-                              imageUrl: widget.imageUrl,
-                              rating: widget.rating,
-                              chapters: chapters.length,
-                              description: widget.description,
-                            ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ReaderPage(
+                            id: id,
+                            title: title,
+                            author: author,
+                            imageUrl: imageUrl,
+                            rating: rating,
+                            chapters: chapters.length,
+                            description: description,
+                            initialChapterIndex: index,
                           ),
-                        ).then((_) {
-                          // optional: you could reload bookmark state if needed
-                          _loadBookmarkState();
-                        });
-                      },
-                    );
-                  },
-                );
-              },
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              ),
+              error: (err, _) => Center(
+                child: Text('Error: $err', style: const TextStyle(color: Colors.redAccent)),
+              ),
             ),
           ],
         ),
@@ -261,14 +209,12 @@ class _MangaPageState extends State<MangaPage> {
 
 
 
-
-
-
-// import 'package:flutter/material.dart';
-// import 'package:mangareader/screens/reading_page.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
 // import 'dart:convert';
-
+// import 'package:flutter/material.dart';
+// import 'package:cached_network_image/cached_network_image.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import '../bloc/manga_fetcher.dart';
+// import 'reading_page.dart';
 
 // class MangaPage extends StatefulWidget {
 //   final String id;
@@ -295,12 +241,17 @@ class _MangaPageState extends State<MangaPage> {
 // }
 
 // class _MangaPageState extends State<MangaPage> {
+//   late Future<List<Map<String, dynamic>>> _chaptersFuture;
+//   bool _isBookmarked = false;
 //   int lastRead = 0; // default to 0
-//   bool isBookmarked = false;
+
+//   // static const String _bookmarkIdsKey = 'bookmarked_manga_ids';
+//   // static const String _bookmarkPrefix = 'bookmark_'; // will store metadata per manga id
 
 //   @override
 //   void initState() {
 //     super.initState();
+//     _chaptersFuture = MangaDexApi.getChapters(widget.id);
 //     _loadBookmarkStatus();
 //   }
 
@@ -308,7 +259,7 @@ class _MangaPageState extends State<MangaPage> {
 //     final prefs = await SharedPreferences.getInstance();
 //     final raw = prefs.getString('bookmarks');
 //     if (raw == null) {
-//       setState(() => isBookmarked = false);
+//       setState(() => _isBookmarked = false);
 //       return;
 //     }
 //     try {
@@ -317,9 +268,9 @@ class _MangaPageState extends State<MangaPage> {
 //         final m = e as Map<String, dynamic>;
 //         return (m['title'] == widget.title) && (m['author'] == widget.author);
 //       });
-//       setState(() => isBookmarked = exists);
+//       setState(() => _isBookmarked = exists);
 //     } catch (_) {
-//       setState(() => isBookmarked = false);
+//       setState(() => _isBookmarked = false);
 //     }
 //   }
 
@@ -339,7 +290,7 @@ class _MangaPageState extends State<MangaPage> {
 //       return !(m['title'] == widget.title && m['author'] == widget.author);
 //     }).toList();
 
-//     if (!isBookmarked) {
+//     if (!_isBookmarked) {
 //       list.add({
 //         'id' :widget.id,
 //         'title': widget.title,
@@ -354,160 +305,174 @@ class _MangaPageState extends State<MangaPage> {
 //     }
 
 //     await prefs.setString('bookmarks', jsonEncode(list));
-//     setState(() => isBookmarked = !isBookmarked);
+//     setState(() => _isBookmarked = !_isBookmarked);
 //   }
 
 //   @override
 //   Widget build(BuildContext context) {
 //     return Scaffold(
+//       backgroundColor: Colors.grey[900],
 //       appBar: AppBar(
-//         title: const Text('Manga Reader'),
+//         backgroundColor: Colors.black,
+//         title: Text(widget.title, style: const TextStyle(color: Colors.white)),
+//         iconTheme: const IconThemeData(color: Colors.white),
 //         actions: [
 //           IconButton(
-//             tooltip: isBookmarked ? 'Remove bookmark' : 'Add bookmark',
-//             icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border),
 //             onPressed: _toggleBookmark,
+//             icon: _isBookmarked
+//                 ? const Icon(Icons.bookmark, color: Colors.amber)
+//                 : const Icon(Icons.bookmark_border, color: Colors.white),
+//             tooltip: _isBookmarked ? 'Remove bookmark' : 'Add bookmark',
 //           ),
 //         ],
 //       ),
 //       body: SingleChildScrollView(
-//         padding: const EdgeInsets.all(16.0),
 //         child: Column(
 //           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: <Widget>[
-//             // Manga Title Section
-//             Row(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 ClipRRect(
-//                   borderRadius: const BorderRadius.all(Radius.circular(12)),
-//                   child: Image.network(
-//                     widget.imageUrl ,
-//                     width: 100,
-//                     height: 150,
-//                     fit: BoxFit.cover,
-//                   ),
-//                 ),
-//                 SizedBox(width: 16),
-//                 Expanded(
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       Text(
-//                         widget.title,
-//                         maxLines: 2,
-//                         overflow: TextOverflow.ellipsis,
-//                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-//                       ),
-//                       const SizedBox(height: 4),
-//                       Text(
-//                         widget.author,
-//                         maxLines: 1,
-//                         overflow: TextOverflow.ellipsis,
-//                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-//                       ),
-//                       const SizedBox(height: 8),
-//                       Row(
-//                         mainAxisSize: MainAxisSize.min,
-//                         children: [
-//                           const Icon(Icons.star, color: Colors.amber, size: 20),
-//                           const SizedBox(width: 4),
-//                           Text(
-//                             '${widget.rating}',
-//                             style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-//                           ),
-//                         ],
-//                       ),
-//                       const SizedBox(height: 4),
-//                       Text(
-//                         '${widget.chapters} Chapters',
-//                         style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ],
-//             ),
-//             SizedBox(height: 16),
-            
-//             // Action Buttons
-//             Row(
-//               mainAxisAlignment: MainAxisAlignment.start,
-//               children: [
-//                 SizedBox(width: 10),
-//                 ElevatedButton(
-//                   onPressed: () {
-//                     Navigator.push(
-//                       context,
-//                       MaterialPageRoute(
-//                         builder: (context) => ReaderPage(
-//                           id: widget.id,
-//                           title: widget.title,
-//                           author: widget.author,
-//                           imageUrl: widget.imageUrl,
-//                           rating: widget.rating,
-//                           chapters: widget.chapters,
-//                           description: widget.description,
+//           children: [
+//             // 🔹 Cover + Info
+//             Padding(
+//               padding: const EdgeInsets.all(12.0),
+//               child: Row(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   ClipRRect(
+//                     borderRadius: BorderRadius.circular(10),
+//                     child: CachedNetworkImage(
+//                       imageUrl: widget.imageUrl,
+//                       width: 120,
+//                       height: 180,
+//                       fit: BoxFit.cover,
+//                       placeholder: (context, url) => Container(
+//                         width: 120,
+//                         height: 180,
+//                         color: Colors.grey[800],
+//                         child: const Center(
+//                           child: CircularProgressIndicator(color: Colors.white70),
 //                         ),
 //                       ),
-//                     );
-//                     // Continue Reading functionality
-//                   },
-//                   child: const Text('Continue Reading'),
-//                 ),
-//               ],
+//                       errorWidget: (context, url, error) => Container(
+//                         width: 120,
+//                         height: 180,
+//                         color: Colors.grey[800],
+//                         child: const Icon(Icons.broken_image, color: Colors.redAccent),
+//                       ),
+//                     ),
+//                   ),
+//                   const SizedBox(width: 12),
+//                   Expanded(
+//                     child: Column(
+//                       crossAxisAlignment: CrossAxisAlignment.start,
+//                       children: [
+//                         Text(widget.title,
+//                             style: const TextStyle(
+//                                 color: Colors.white,
+//                                 fontSize: 20,
+//                                 fontWeight: FontWeight.bold)),
+//                         const SizedBox(height: 4),
+//                         Text('By ${widget.author}',
+//                             style: const TextStyle(
+//                                 color: Colors.white70, fontSize: 14)),
+//                         const SizedBox(height: 4),
+//                         Text('Rating: ${widget.rating.toStringAsFixed(1)} ⭐',
+//                             style: const TextStyle(color: Colors.amber)),
+//                       ],
+//                     ),
+//                   )
+//                 ],
+//               ),
 //             ),
-//             SizedBox(height: 16),
-            
-//             // Chapters Info
-//             Row(
-//               children: [
-//                 Text(
-//                   'Chapters ($lastRead/${widget.chapters})',
-//                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-//                 ),
-//               ],
-//             ),
-//             SizedBox(height: 16),
-            
-//             // Genres Section
-//             Wrap(
-//               spacing: 8.0,
-//               children: [
-//                 GenreChip(label: 'Action'),
-//                 GenreChip(label: 'Fantasy'),
-//                 GenreChip(label: 'Apocalypse'),
-//               ],
-//             ),
-//             SizedBox(height: 16),
 
-//             // Description Section
-//             Text(
-//               widget.description.isNotEmpty ? widget.description : 'No description available.',
-//               style: Theme.of(context).textTheme.bodyLarge,
+//             // 🔹 Description
+//             Padding(
+//               padding: const EdgeInsets.all(12.0),
+//               child: Text(widget.description,
+//                   style: const TextStyle(color: Colors.white70, height: 1.4)),
+//             ),
+
+//             const Divider(color: Colors.white24),
+
+//             // 🔹 Chapter List header
+//             Padding(
+//               padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+//               child: const Text("Chapters",
+//                   style: TextStyle(
+//                       color: Colors.white,
+//                       fontWeight: FontWeight.bold,
+//                       fontSize: 18)),
+//             ),
+
+//             // 🔹 Chapters FutureBuilder
+//             FutureBuilder<List<Map<String, dynamic>>>(
+//               future: _chaptersFuture,
+//               builder: (context, snapshot) {
+//                 if (snapshot.connectionState == ConnectionState.waiting) {
+//                   return const Center(
+//                       child: Padding(
+//                     padding: EdgeInsets.all(20.0),
+//                     child: CircularProgressIndicator(color: Colors.white),
+//                   ));
+//                 } else if (snapshot.hasError) {
+//                   return Center(
+//                       child: Padding(
+//                     padding: const EdgeInsets.all(12.0),
+//                     child: Text('Error loading chapters: ${snapshot.error}',
+//                         style: const TextStyle(color: Colors.redAccent)),
+//                   ));
+//                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//                   return const Center(
+//                       child: Padding(
+//                     padding: EdgeInsets.all(12.0),
+//                     child: Text('No chapters found.',
+//                         style: TextStyle(color: Colors.white70)),
+//                   ));
+//                 }
+
+//                 final chapters = snapshot.data!;
+//                 return ListView.separated(
+//                   shrinkWrap: true,
+//                   physics: const NeverScrollableScrollPhysics(),
+//                   itemCount: chapters.length,
+//                   separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+//                   itemBuilder: (context, index) {
+//                     final chapter = chapters[index];
+//                     final title = chapter['title'] ?? 'Chapter ${chapter['chapter'] ?? 'N/A'}';
+//                     final chapterNum = chapter['chapter'] ?? '';
+
+//                     return ListTile(
+//                       dense: true,
+//                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+//                       title: Text(title, style: const TextStyle(color: Colors.white)),
+//                       subtitle: Text('Chapter $chapterNum', style: const TextStyle(color: Colors.white54)),
+//                       trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+//                       onTap: () {
+//                         // Open ReaderPage — ReaderPage will fetch chapter pages by itself
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(
+//                             builder: (context) => ReaderPage(
+//                               id: widget.id,
+//                               title: widget.title,
+//                               author: widget.author,
+//                               imageUrl: widget.imageUrl,
+//                               rating: widget.rating,
+//                               chapters: chapters.length,
+//                               description: widget.description,
+//                             ),
+//                           ),
+//                         ).then((_) {
+//                           // optional: you could reload bookmark state if needed
+//                           _loadBookmarkStatus();
+//                         });
+//                       },
+//                     );
+//                   },
+//                 );
+//               },
 //             ),
 //           ],
 //         ),
 //       ),
-//       // background uses theme scaffoldBackgroundColor
-//     );
-//   }
-// }
-
-// class GenreChip extends StatelessWidget {
-//   final String label;
-
-//   const GenreChip({super.key, required this.label});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final scheme = Theme.of(context).colorScheme;
-//     return Chip(
-//       label: Text(
-//         label,
-//         style: TextStyle(color: scheme.onSecondaryContainer),
-//       ),
-//       backgroundColor: scheme.secondaryContainer,
 //     );
 //   }
 // }

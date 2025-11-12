@@ -1,7 +1,7 @@
 name: mangareader
-description: "A new Flutter project."
+description: "A manga reader app using MangaDex API."
 publish_to: 'none'
-version: 0.1.0
+version: 0.2.0
 
 environment:
   sdk: ^3.9.2
@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  flutter_riverpod: ^3.0.3 # State management
   
   http: ^1.2.0 # For making HTTP requests 
   provider: ^6.0.5 # State management

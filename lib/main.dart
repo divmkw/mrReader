@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/home_page.dart';
 import 'screens/search_page.dart';
 import 'screens/library_page.dart';
 import 'screens/settings_page.dart';
 import 'widgets/bottom_nav.dart';
 import 'theme/app_theme.dart';
-import 'screens/notificaiton_page.dart';
+import 'screens/notification_page.dart';
 
 void main() {
-  runApp(const MangaReaderApp());
+  runApp(
+    const ProviderScope(
+      child: MangaReaderApp(),
+    ), 
+  );
 }
 
 class MangaReaderApp extends StatefulWidget {
