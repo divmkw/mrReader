@@ -1,4 +1,4 @@
-name: mangareader
+name: Mr.reader
 description: "A manga reader app using MangaDex API."
 publish_to: 'none'
 version: 0.2.0
@@ -18,11 +18,26 @@ dependencies:
   shared_preferences: ^2.1.1 # For local storage
   url_launcher: ^6.1.10 # To open URLs in the browser
   photo_view: ^0.15.0 # For image zooming
+  html: ^0.15.0 # For HTML parsing
+  intl: ^0.18.0 # For internationalization and date formatting
+  
+  # image_path: "assets/icon/logo.png" # App icon path
+    
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1 # For generating app icons
+
+flutter_launcher_icons:
+  android: true
+  ios: false # Set to true if you were also targeting iOS
+  image_path: "assets/icon/logo.png" # YOUR NEW ICON PATH
+  # min_sdk_android: 21 # Minimum Android SDK version
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/logo.png
+

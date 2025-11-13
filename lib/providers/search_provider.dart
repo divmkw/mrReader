@@ -29,7 +29,7 @@ class SearchNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
 
       state = const AsyncLoading();
       try {
-        final results = await MangaDexApi.searchManga(query, limit: 20);
+        final results = await MangaDexApi.searchManga(query, limit: 30);
         state = AsyncData(results);
       } catch (e, st) {
         state = AsyncError(e, st);

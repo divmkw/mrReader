@@ -56,6 +56,7 @@ class MangaPage extends ConsumerWidget {
                 'chapters': chapters,
                 'description': description,
               });
+              // ref.read(bookmarkProvider(id))._load();
             },
           ),
         ],

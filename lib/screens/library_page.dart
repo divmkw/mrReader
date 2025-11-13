@@ -130,7 +130,7 @@ class _BookmarksGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return RefreshIndicator(
       onRefresh: () async =>
-          await ref.read(bookmarksProvider.notifier).refresh(),
+          await ref.refresh(bookmarksProvider.notifier),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: GridView.builder(

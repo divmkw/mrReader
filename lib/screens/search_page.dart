@@ -24,7 +24,7 @@ class SearchPage extends ConsumerWidget {
             // Search Bar
             TextField(
               controller: controller,
-              onChanged: (q) => ref.read(searchProvider.notifier).search(q),
+              // onChanged: (q) => ref.read(searchProvider.notifier).search(q),
               onSubmitted: (q) {
                 ref.read(searchHistoryProvider.notifier).add(q);
                 ref.read(searchProvider.notifier).search(q);

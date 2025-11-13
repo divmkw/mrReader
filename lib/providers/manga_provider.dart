@@ -64,6 +64,7 @@ class BookmarkNotifier extends ChangeNotifier {
 
     await prefs.setString('bookmarks', jsonEncode(list));
     _isBookmarked = !_isBookmarked;
+    // _load();
     notifyListeners();
   }
 }
