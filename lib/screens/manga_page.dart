@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mangareader/providers/manga_provider.dart';
+import 'package:Mr.reader/providers/manga_provider.dart';
 import 'reading_page.dart';
 
 class MangaPage extends ConsumerWidget {
